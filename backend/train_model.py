@@ -9,6 +9,7 @@ Outputs:
     model/vectorizer.pkl
 """
 
+import csv
 import re
 from pathlib import Path
 
@@ -20,7 +21,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# Use the balanced dataset instead of the old heavily imbalanced dataset.
 DATA_PATH = Path("data/dataset_balanced.csv")
 MODEL_PATH = Path("model/sentiment_model.pkl")
 VECTORIZER_PATH = Path("model/vectorizer.pkl")
@@ -30,7 +30,6 @@ REQUIRED_CLASSES = {"negative", "neutral", "positive"}
 def clean_text(text: str) -> str:
     """Normalize text while preserving sentiment and negation words."""
     text = str(text).lower()
-    text = re.sub(r"[^a-z'\s]", " ", text)
 
     replacements = {
         "can't": "can not", "cannot": "can not", "won't": "will not",
@@ -42,14 +41,62 @@ def clean_text(text: str) -> str:
     for old, new in replacements.items():
         text = text.replace(old, new)
 
+    text = re.sub(r"[^a-z'\s]", " ", text)
     text = text.replace("'", "")
     return re.sub(r"\s+", " ", text).strip()
+
+
+def repair_csv_if_needed(path: Path) -> None:
+    """Repair the balanced CSV if text fields contain unquoted commas.
+
+    The balanced dataset was originally written with commas inside the text
+    column without CSV quoting. Since the sentiment label is always the last
+    comma-separated field, we can safely reconstruct each row by splitting
+    from the right, then rewrite the file as a standards-compliant CSV.
+    """
+    try:
+        pd.read_csv(path)
+        return
+    except pd.errors.ParserError:
+        print("\nCSV formatting issue detected. Repairing dataset...")
+
+    with path.open("r", encoding="utf-8", newline="") as f:
+        lines = f.read().splitlines()
+
+    if not lines or lines[0].strip().lower() != "text,sentiment":
+        raise ValueError("Dataset must start with the header: text,sentiment")
+
+    repaired_rows = []
+    for line_number, line in enumerate(lines[1:], start=2):
+        if not line.strip():
+            continue
+
+        parts = line.rsplit(",", 1)
+        if len(parts) != 2:
+            raise ValueError(f"Invalid CSV row at line {line_number}: {line}")
+
+        text, sentiment = parts
+        sentiment = sentiment.strip().lower()
+        if sentiment not in REQUIRED_CLASSES:
+            raise ValueError(
+                f"Invalid sentiment '{sentiment}' at line {line_number}."
+            )
+        repaired_rows.append([text.strip(), sentiment])
+
+    # Rewrite the same file with proper CSV quoting.
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["text", "sentiment"])
+        writer.writerows(repaired_rows)
+
+    print(f"Repaired {len(repaired_rows)} dataset rows successfully.")
 
 
 def load_dataset(path: Path) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(f"Dataset not found: {path.resolve()}")
 
+    repair_csv_if_needed(path)
     df = pd.read_csv(path)
     df = df.rename(columns={"review": "text", "sentence": "text", "comment": "text",
                             "label": "sentiment", "target": "sentiment", "polarity": "sentiment"})
