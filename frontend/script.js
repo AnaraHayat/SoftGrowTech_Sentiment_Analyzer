@@ -83,25 +83,30 @@ async function analyze() {
 
     const data = await res.json();
 
-    // Stamp
-    const mlLabel = data.ml_model.sentiment;
-    stampEl.textContent = mlLabel;
-    stampEl.className = `stamp ${labelClass(mlLabel)}`;
-    confidenceText.innerHTML = `model confidence <b>${(data.ml_model.confidence * 100).toFixed(1)}%</b>`;
+    // Single source of truth: the ML model prediction.
+    // The stamp, verdict, confidence, and probability bars all use this same result.
+    const verdict = data.ml_model.sentiment;
+    stampEl.textContent = verdict;
+    stampEl.className = `stamp ${labelClass(verdict)}`;
+    confidenceText.innerHTML = `model verdict <b>${verdict}</b> · confidence <b>${(data.ml_model.confidence * 100).toFixed(1)}%</b>`;
 
-    // ML bars
+    // ML probability bars
     mlBars.innerHTML = "";
     const probs = data.ml_model.class_probabilities;
     Object.keys(probs).sort().forEach((cls) => {
       renderBar(mlBars, cls, probs[cls], labelClass(cls));
     });
 
-    // TextBlob readout
+    // TextBlob is diagnostic only. It no longer provides a competing verdict.
     const tb = data.textblob;
     tbReadout.innerHTML = `
       <div class="bar-row">
-        <span class="bar-label">verdict</span>
-        <span style="color: var(--ink); font-weight:600;">${tb.sentiment}</span>
+        <span class="bar-label">ML verdict</span>
+        <span style="color: var(--ink); font-weight:600;">${verdict}</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">TextBlob check</span>
+        <span style="color: var(--muted);">${tb.sentiment}</span>
       </div>
       <div class="bar-row">
         <span class="bar-label">polarity</span>
