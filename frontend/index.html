@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verdict — Text Sentiment Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <div class="brand"><strong>Verdict</strong> · sentiment desk</div>
+    <nav class="site">
+      <a href="#how">How it works</a>
+      <a href="#dataset">Dataset &amp; model</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Text sentiment analyzer</div>
+      <h1>Hand it a sentence.<br>Get a <em>verdict</em>, not a guess.</h1>
+      <p class="lede">
+        Paste in a review, comment, or note. A model trained on 2,099 labeled
+        movie reviews reads it, weighs the language, and marks its call —
+        positive, negative, or neutral — with a confidence score.
+      </p>
+
+      <div class="desk">
+        <div class="desk-label">
+          <span>Manuscript</span>
+          <span class="status-dot" id="api-status"><i></i>checking API…</span>
+        </div>
+        <div class="manuscript">
+          <textarea id="input-text" placeholder="e.g. The battery life is disappointing but the camera is genuinely excellent."></textarea>
+        </div>
+        <div class="desk-actions">
+          <div class="sample-links">
+            Try:
+            <button data-sample="positive">a positive one</button>
+            <button data-sample="negative">a negative one</button>
+            <button data-sample="neutral">a neutral one</button>
+          </div>
+          <button id="analyze-btn">Analyze sentiment</button>
+        </div>
+
+        <div class="error-msg" id="error-msg"></div>
+
+        <div id="result">
+          <div class="stamp-row">
+            <span class="stamp" id="stamp">—</span>
+            <span class="confidence-text" id="confidence-text"></span>
+          </div>
+          <div class="readouts">
+            <div class="readout-card">
+              <h3>ML model — class probabilities</h3>
+              <div id="ml-bars"></div>
+            </div>
+            <div class="readout-card">
+              <h3>TextBlob cross-check</h3>
+              <div id="tb-readout"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="wrap">
+      <h2>How a sentence becomes a verdict</h2>
+      <p class="section-sub">Three steps, in the order the text actually travels through the system.</p>
+      <div class="pipeline">
+        <div class="pipe-step">
+          <div class="num">01 / clean</div>
+          <h3>Normalize the text</h3>
+          <p>Lowercase it, strip punctuation and numbers, collapse whitespace. This keeps the model focused on words, not formatting noise.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="num">02 / vectorize</div>
+          <h3>TF-IDF, unigrams + bigrams</h3>
+          <p>Text becomes a sparse vector of up to 8,000 weighted word and word-pair features, with common stopwords removed.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="num">03 / classify</div>
+          <h3>Logistic Regression</h3>
+          <p>The vector is scored against a model trained on labeled reviews, returning a label plus a probability for each class.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="dataset">
+    <div class="wrap">
+      <h2>Dataset &amp; model notes</h2>
+      <p class="section-sub">What this was trained and evaluated on.</p>
+      <div class="notes-grid">
+        <div class="note-card">
+          <div class="metric">2,000</div>
+          <div class="metric-label">Labeled reviews</div>
+        </div>
+        <div class="note-card">
+          <div class="metric">1,000 / 1,000</div>
+          <div class="metric-label">Positive / negative split</div>
+        </div>
+        <div class="note-card">
+          <div class="metric">80.75%</div>
+          <div class="metric-label">Held-out test accuracy</div>
+        </div>
+        <div class="note-card">
+          <div class="metric">8,000</div>
+          <div class="metric-label">TF-IDF features</div>
+        </div>
+      </div>
+      <div class="source-note">
+        <strong>On the dataset source:</strong> this build uses NLTK's built-in
+        <code>movie_reviews</code> corpus — 2,000 hand-labeled positive/negative reviews,
+        the same underlying review data behind many Kaggle "IMDB movie review sentiment"
+        datasets. To swap in a Kaggle dataset directly, download its CSV, save it as
+        <code>backend/data/dataset.csv</code> with a text column and a sentiment/label
+        column, and re-run <code>train_model.py</code> — the pipeline reads either format automatically.
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    Verdict — a from-scratch sentiment classifier (TF-IDF + Logistic Regression) served over Flask.
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
